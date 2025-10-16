@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SmartQuiz Portal — Unified</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{
+  --accent1:#004aad;--accent2:#007bff;--bg:#f5f7fb;--card:#fff;--muted:#6b7280;
+}
+body{margin:0;font-family:Inter,system-ui,Roboto;background:var(--bg);color:#111827;}
+header{background:linear-gradient(90deg,var(--accent1),var(--accent2));color:white;padding:1rem;text-align:center;font-weight:700;}
+main{max-width:1100px;margin:1.25rem auto;padding:0 1rem;}
+.center{display:flex;align-items:center;justify-content:center;height:68vh;}
+.card{background:var(--card);border-radius:12px;box-shadow:0 8px 24px rgba(16,24,40,0.06);padding:1.5rem;width:100%;max-width:920px;}
+.tabs{display:flex;gap:.5rem;margin-bottom:1rem;}
+.tab{flex:1;text-align:center;padding:.6rem;border-radius:8px;cursor:pointer;font-weight:600;}
+.tab.active{background:linear-gradient(90deg,var(--accent1),var(--accent2));color:white;}
+input,select,button{width:100%;padding:.8rem;border-radius:8px;border:1px solid #e6e9ef;font-size:.95rem;}
+button.primary{width:auto;padding:.9rem 1rem;border-radius:10px;border:0;background:linear-gradient(90deg,var(--accent1),var(--accent2));color:white;font-weight:600;cursor:pointer;}
+button.logout-btn{width:auto;padding:.6rem .9rem;border-radius:8px;border:0;background:#f3f4f6;cursor:pointer;}
+.muted{color:var(--muted);font-size:.95rem;}
+.hidden{display:none;}
+.question{margin:1rem 0;}
+.options label{display:block;margin:.3rem 0;cursor:pointer;}
+canvas{max-width:100%;}
+table{width:100%;border-collapse:collapse;margin-top:1rem;}
+th,td{border:1px solid #e5e7eb;padding:.5rem;text-align:left;}
+th{background:#f3f4f6;}
+#calendar{margin-top:1rem;font-size:.95rem;}
+#calendar ul{columns:3;-webkit-columns:3;-moz-columns:3;list-style:none;padding:0;}
+#calendar li{margin:.2rem 0;background:#f9fafb;padding:.3rem .6rem;border-radius:6px;}
+</style>
+</head>
+<body>
+<header>SmartQuiz Portal — Student | Teacher | Parent</header>
+
+<main>
+  <!-- Login Tabs -->
+  <div id="mainTabs" class="card">
+    <div class="tabs">
+      <div class="tab active" id="tab-stu" onclick="switchTab('student')">Student</div>
+      <div class="tab" id="tab-tea" onclick="switchTab('teacher')">Teacher</div>
+      <div class="tab" id="tab-par" onclick="switchTab('parent')">Parent</div>
+    </div>
+  </div>
+
+  <!-- STUDENT LOGIN -->
+  <div id="login-student" class="center">
+    <div class="card">
+      <h2>Student Login</h2>
+      <p class="muted">Enter your info to start a 20+ question quiz.</p>
+      <input id="stuName" type="text" placeholder="Name">
+      <input id="stuMobile" type="tel" placeholder="10-digit Mobile">
+      <select id="stuSubject">
+        <option>Physics</option><option>Chemistry</option><option>Maths</option><option>Science</option><option>English</option><option>Hindi</option><option>General Knowledge</option>
+      </select>
+      <select id="stuLang">
+        <option>English</option><option>Hindi</option>
+      </select>
+      <div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap;">
+        <button class="primary" onclick="studentLogin()">Login</button>
+        <button class="primary" onclick="showCalendar()">View 2025 Sunday Schedule</button>
+      </div>
+      <div id="calendar" class="hidden">
+        <h3>🗓 Sundays in 2025</h3>
+        <ul id="sundayList"></ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEACHER LOGIN -->
+  <div id="login-teacher" class="center hidden">
+    <div class="card">
+      <h2>Teacher Login</h2>
+      <p class="muted">Click below to access all student quiz data.</p>
+      <div style="margin-top:1rem">
+        <button class="primary" onclick="activateTeacher()">Open Teacher Portal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PARENT LOGIN -->
+  <div id="login-parent" class="center hidden">
+    <div class="card">
+      <h2>Parent Login</h2>
+      <p class="muted">Enter your child’s registered mobile number.</p>
+      <input id="parMobile" type="tel" placeholder="10-digit Mobile">
+      <div style="margin-top:1rem">
+        <button class="primary" onclick="parentLogin()">View Report</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STUDENT QUIZ PORTAL -->
+  <div id="studentPortal" class="hidden">
+    <div class="card">
+      <h2 id="studentWelcome"></h2>
+      <div id="quizContainer"></div>
+      <button id="submitBtn" class="primary" onclick="submitQuiz()">Submit Quiz</button>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+    <div class="card hidden" id="resultCard">
+      <h2>Quiz Results</h2>
+      <p id="scoreText"></p>
+      <canvas id="performanceChart" height="150"></canvas>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <!-- TEACHER PORTAL -->
+  <div id="teacherPortal" class="hidden">
+    <div class="card">
+      <h2>All Student Results</h2>
+      <table>
+        <thead><tr><th>Name</th><th>Mobile</th><th>Subject</th><th>Score</th><th>Date</th></tr></thead>
+        <tbody id="teacherTable"></tbody>
+      </table>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <!-- PARENT PORTAL -->
+  <div id="parentPortal" class="hidden">
+    <div class="card">
+      <h2>Student Report</h2>
+      <table>
+        <thead><tr><th>Subject</th><th>Score</th></tr></thead>
+        <tbody id="parentTable"></tbody>
+      </table>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+  </div>
+</main>
+
+<script>
+let currentUser=null;
+
+function switchTab(type){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(`tab-${type.slice(0,3)}`).classList.add('active');
+  document.querySelectorAll('[id^=login-]').forEach(v=>v.classList.add('hidden'));
+  document.getElementById(`login-${type}`).classList.remove('hidden');
+}
+
+function showCalendar(){
+  const cal=document.getElementById('calendar');
+  const list=document.getElementById('sundayList');
+  cal.classList.toggle('hidden');
+  if(!list.innerHTML){
+    let year=2025;
+    let date=new Date(year,0,1);
+    let sundays=[];
+    while(date.getFullYear()===year){
+      if(date.getDay()===0){ // Sunday
+        sundays.push(date.toDateString());
+      }
+      date.setDate(date.getDate()+1);
+    }
+    list.innerHTML=sundays.map(d=>`<li>${d}</li>`).join('');
+  }
+}
+
+function studentLogin(){
+  const n=stuName.value.trim(),m=stuMobile.value.trim(),s=stuSubject.value,l=stuLang.value;
+  if(!n||!/^[0-9]{10}$/.test(m)) return alert("Enter valid details");
+  currentUser={name:n,mobile:m,subject:s,lang:l};
+  hideAll();
+  studentPortal.classList.remove('hidden');
+  studentWelcome.textContent=`Welcome ${n} (${s}, ${l})`;
+  generateQuiz(s);
+}
+
+function activateTeacher(){
+  hideAll();
+  teacherPortal.classList.remove('hidden');
+  loadTeacherTable();
+}
+
+function parentLogin(){
+  const m=parMobile.value.trim();
+  if(!/^[0-9]{10}$/.test(m)) return alert("Enter valid mobile");
+  hideAll();
+  parentPortal.classList.remove('hidden');
+  loadParentTable(m);
+}
+
+function logout(){
+  currentUser=null;
+  document.querySelectorAll('[id$=Portal]').forEach(v=>v.classList.add('hidden'));
+  document.getElementById('resultCard').classList.add('hidden');
+  document.getElementById('submitBtn').classList.remove('hidden');
+  document.getElementById('mainTabs').classList.remove('hidden');
+  document.getElementById('login-student').classList.remove('hidden');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-stu').classList.add('active');
+}
+
+function hideAll(){
+  document.getElementById('mainTabs').classList.add('hidden');
+  document.querySelectorAll('[id^=login-]').forEach(v=>v.classList.add('hidden'));
+}
+
+function generateQuiz(subject){
+  const pool={Physics:[
+    ['What is SI unit of force?',['Newton','Joule','Pascal','Watt'],'Newton'],
+    ['Speed of light?',['3×10⁸ m/s','1×10⁶ m/s','3×10⁶ km/s','3×10⁵ km/s'],'3×10⁸ m/s'],
+    ['Law of gravitation by?',['Newton','Einstein','Galileo','Faraday'],'Newton'],
+    ['Unit of power?',['Watt','Joule','Newton','Volt'],'Watt'],
+    ['Energy unit?',['Joule','Pascal','Newton','Watt'],'Joule'],
+    ['Gravity on Earth?',['9.8 m/s²','10','8.9','9.5'],'9.8 m/s²'],
+    ['Inertia means?',['Resistance','Speed','Force','Energy'],'Resistance'],
+    ['Vector quantity?',['Velocity','Speed','Mass','Time'],'Velocity'],
+    ['Scalar quantity?',['Speed','Velocity','Force','Momentum'],'Speed'],
+    ['Invented telescope?',['Galileo','Newton','Einstein','Kepler'],'Galileo'],
+    ['Work done = ?',['Force×displacement','Energy','Power','Time'],'Force×displacement'],
+    ['Sound travels in?',['Vacuum','Solid','Liquid','Gas'],'Solid'],
+    ['F=ma law?',['2nd law','1st law','3rd','Gravitation'],'2nd law'],
+    ['Momentum= ?',['m×v','m+v','m/v','v/m'],'m×v'],
+    ['Pressure unit?',['Pascal','Joule','Watt','Newton'],'Pascal'],
+    ['Charge unit?',['Coulomb','Volt','Ampere','Ohm'],'Coulomb'],
+    ['Current unit?',['Ampere','Volt','Ohm','Coulomb'],'Ampere'],
+    ['Potential diff unit?',['Volt','Ohm','Joule','Ampere'],'Volt'],
+    ['1 HP=?',['746 W','1000 W','500 W','960 W'],'746 W'],
+    ['X-rays discovered by?',['Roentgen','Newton','Einstein','Maxwell'],'Roentgen'],
+    ['Frequency unit?',['Hertz','Newton','Volt','Ampere'],'Hertz']
+  ]};
+  const questions=pool[subject]||pool.Physics;
+  const qz=document.getElementById('quizContainer');
+  qz.innerHTML='';
+  questions.forEach((q,i)=>{
+    const div=document.createElement('div');
+    div.className='question';
+    div.innerHTML=`<p><strong>Q${i+1}:</strong> ${q[0]}</p>`+q[1].map(o=>`<label><input type='radio' name='q${i}' value='${o}'> ${o}</label>`).join('');
+    qz.appendChild(div);
+  });
+  qz.dataset.questions=JSON.stringify(questions);
+}
+
+function submitQuiz(){
+  const questions=JSON.parse(document.getElementById('quizContainer').dataset.questions||'[]');
+  let score=0;
+  questions.forEach((q,i)=>{
+    const c=document.querySelector(`input[name="q${i}"]:checked`);
+    if(c&&c.value===q[2])score++;
+  });
+  saveResult(currentUser.name,currentUser.mobile,currentUser.subject,score,questions.length);
+  showResult(score,questions.length);
+}
+
+function showResult(score,total){
+  document.getElementById('submitBtn').classList.add('hidden');
+  resultCard.classList.remove('hidden');
+  scoreText.textContent=`You scored ${score} / ${total}`;
+  const ctx=document.getElementById('performanceChart').getContext('2d');
+  new Chart(ctx,{type:'bar',data:{labels:['Correct','Incorrect'],datasets:[{data:[score,total-score],backgroundColor:['#22c55e','#ef4444']}]}});}
+  
+function saveResult(name,mobile,subject,score,total){
+  const all=JSON.parse(localStorage.getItem('quizResults')||'[]');
+  all.push({name,mobile,subject,score,total,date:new Date().toLocaleString()});
+  localStorage.setItem('quizResults',JSON.stringify(all));
+}
+
+function loadTeacherTable(){
+  const all=JSON.parse(localStorage.getItem('quizResults')||'[]');
+  const body=document.getElementById('teacherTable');
+  body.innerHTML=all.map(r=>`<tr><td>${r.name}</td><td>${r.mobile}</td><td>${r.subject}</td><td>${r.score}/${r.total}</td><td>${r.date}</td></tr>`).join('')||'<tr><td colspan=5>No data</td></tr>';
+}
+
+function loadParentTable(mobile){
+  const all=JSON.parse(localStorage.getItem('quizResults')||'[]').filter(r=>r.mobile===mobile);
+  const body=document.getElementById('parentTable');
+  body.innerHTML=all.map(r=>`<tr><td>${r.subject}</td><td>${r.score}/${r.total}</td></tr>`).join('')||'<tr><td colspan=2>No records found</td></tr>';
+}
+</script>
+\\<script src="Quiz.js"></script>
+</body>
+</html>
